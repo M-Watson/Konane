@@ -1,0 +1,2 @@
+# Konane
+Kōnane game
