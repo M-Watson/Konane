@@ -26,20 +26,43 @@ function calculateWinner(squares) {
 class Board extends React.Component {
   constructor(props){
     super(props);
-    this.state = {
-      squares: Array(7*13).fill("-"),
-      xIsNext: true,
-    };
+    let j = 7*13;
+    for (let i = 0; i < j; i++){
+      if (i%2 == 0) {
+        this.state = {
+          squares: Array(i).fill("X"), xIsNext: false, 
+        }
+      }
+      else {
+        this.state = {
+          squares: Array(i).fill("O"), xIsNext: true,
+        }
+      }
+
+
+    }
   }
+
+
   handleClick(i){
     const squares = this.state.squares.slice();
     if (calculateWinner(squares) || squares[i]) {
       return;
     }
-    squares[i] = this.state.xIsNext ? 'X' : 'O';
-    this.setState({squares:squares,
-    xIsNext: !this.state.xIsNext,
-    });
+    if (this.state.xIsNext == true){
+      squares[i] = this.state.xIsNext ? ' ' : 'X';
+      this.setState({squares:squares,
+      xIsNext: !this.state.xIsNext,
+      });
+    }
+
+    else {
+      squares[i] = this.state.xIsNext ? ' ' : 'O';
+      this.setState({squares:squares,
+      xIsNext: !this.state.xIsNext,
+      });
+    }
+
   }
 
   renderRow(k,j) {
