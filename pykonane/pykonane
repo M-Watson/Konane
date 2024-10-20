@@ -1,0 +1,127 @@
+
+import os
+
+def cls():
+    os.system('cls' if os.name=='nt' else 'clear')
+
+
+def starting_move(board):
+    board = remove_piece(4,4,board)
+    return board
+
+def winning_condition_check():
+    return
+
+def color_piece(current_color):
+    if current_color == 'b':
+        return 'w'
+    elif current_color == 'w':
+        return 'b'
+
+def initialize_board(xlen,ylen):
+    current_color = 'b'
+    #board_dict = {}
+    board_matrix = []
+
+    for x in range(xlen):
+        current_color = color_piece(current_color)
+        x_list = []
+        for y in range(ylen):
+
+            current_color = color_piece(current_color)
+            x_list.append(current_color)
+
+        board_matrix.append(x_list)
+    return board_matrix
+
+def print_board(board_matrix,xlen,ylen):
+    cls()
+    xi = 0
+    yi = 0
+    for x in range(xlen):
+        print('\n')
+        if x == 0:
+            for xi in range(xlen+1):
+                if xi == 0:
+                    print(" ",end=" ")
+                else:
+                    print(xi-1,end=" ")
+            print('\n')
+
+        for y in range(ylen):
+            if y == 0:
+                print(yi,end=" ")
+                yi += 1
+                print(board_matrix[x][y], end=" ")
+            else:
+                print(board_matrix[x][y], end=" ")
+
+
+def remove_piece(x,y,board):
+    board[x][y] = ' '
+    return board
+
+
+def hop(xi,yi,xf,yf,board):
+    color = board[xi][yi]
+    if board[xf][yf] == ' ':
+        board[xi][yi] = ' '
+        board[xf][yf] = color
+    return(board)
+
+def hopped_coordinate(xi,yi,xf,yf):
+    yd = yf - yi
+    xd = xf - xi
+    if yd == 2:
+        y = yf - 1
+        x = xi
+        valid = True
+    elif yd == -2:
+        y = yf + 1 
+        x = xi
+        valid = True
+    elif xd == 2:
+        x = xf - 1
+        y = yi
+        valid = True
+    elif xd == -2:
+        x = xf + 1 
+        y = yi
+        valid = True
+    else:
+        x = -1
+        y= -1
+        valid = False
+        print('Invalid')    
+
+    print(f'\n{x},{y}')
+    hopped = [x,y,valid]
+    return hopped   
+xlen = 10
+ylen = 10
+board = initialize_board(xlen,ylen)
+
+board = starting_move(board)
+print_board(board,xlen,ylen)
+
+
+running = True
+while running ==True:
+    val = input('\n\nInput your x y (top left is 0 0) coordinates to remove:  ')
+    if val == 'q':
+        running = False
+        break
+    val = val.split(' ')
+    xi = int(val[0])
+    yi = int(val[1])
+    xf = int(val[2])
+    yf = int(val[3])
+    hopped = hopped_coordinate(xi,yi,xf,yf)
+    if hopped[2] == True:
+        board = hop(xi,yi,xf,yf,board)
+        board = remove_piece(hopped[0],hopped[1],board)
+        print_board(board,xlen,ylen)
+    else:
+        print_board(board,xlen,ylen)
+        print('\nInvalid move, try again\n')
+    
