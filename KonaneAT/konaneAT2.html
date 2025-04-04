@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konane Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            font-family: 'Press Start 2P', cursive;
+            margin: 0;
+            background: linear-gradient(135deg, #4a148c, #1a237e); /* Darker purple gradient */
+        }
+        h1 {
+            color: #f5f5f5;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+        }
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.1); /* Glassmorphism effect - more transparent */
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Stronger shadow */
+            backdrop-filter: blur(10px); /* Add blur to the background, stronger blur */
+            border: 1px solid rgba(255, 255, 255, 0.1); /* Add a border */
+            max-width: 95%; /* Responsive width */
+            width: 1000px; /* Initial width */
+            box-sizing: border-box;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px); /* 50px cells */
+            grid-template-rows: repeat(8, 50px);
+            border: 4px solid #ddd;
+            background-color: #424242;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            margin-bottom: 1rem;
+            width: fit-content; /* Adjust board width to content */
+            height: fit-content; /* Adjust board height to content */
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+            transition: background-color 0.2s; /* Smooth transition */
+        }
+        .cell.black {
+            background-color: #000;
+            color: #fff;
+            border-radius: 50%; /* Make it a circle */
+            width: 80%;  /* Increased size of circle */
+            height: 80%;
+            margin: auto;
+        }
+        .cell.white {
+            background-color: #fff;
+            color: #000;
+            border-radius: 50%;
+            width: 80%;
+            height: 80%;
+            margin: auto;
+        }
+        .cell.empty {
+            background-color: transparent;
+        }
+        .cell:hover {
+            background-color: rgba(255, 255, 255, 0.2); /* Lighter hover effect */
+        }
+        .selected {
+             background-color: rgba(255, 255, 0, 0.3); /* Highlight selected cell */
+        }
+        .possible-move {
+            background-color: rgba(0, 255, 0, 0.3); /* Highlight possible move */
+        }
+
+        #reset-button {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.8rem;
+            background: linear-gradient(to bottom, #4a148c, #1a237e);
+            color: #fff;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            font-family: 'Press Start 2P', cursive;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            display: block;
+            margin: 1rem auto;
+            width: 80%;
+            max-width: 300px;
+            box-sizing: border-box;
+        }
+
+        #reset-button:hover {
+          background: linear-gradient(to bottom, #6a1b9a, #283593);
+          box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+          transform: translateY(-2px);
+        }
+
+        #game-message {
+            font-size: 0.9rem;
+            color: #fff;
+            margin-bottom: 1rem;
+            min-height: 2rem; /* Reserve space to avoid layout shift */
+            text-align: center;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
+        }
+
+        #moves-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.7rem;
+            color: #fff;
+            max-height: 150px; /*scrollable list */
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        #moves-list li {
+            margin-bottom: 0.25rem;
+            padding: 0.25rem;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 0.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(3px);
+            box-sizing: border-box;
+        }
+
+       .sidebar {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 1rem;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-right: 2rem;
+            height: fit-content;
+            max-width: 90%;
+            width: 300px;
+            box-sizing: border-box;
+        }
+
+        .game-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        #game-board-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr; /* Sidebar on left, Board on Right */
+            align-items: start; /* Align items to the start of the container */
+            justify-content: center;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 2rem;
+            box-sizing: border-box;
+        }
+        .sidebar {
+            width: 20%;
+            min-width: 200px;
+            margin-left: 0;
+        }
+        #board {
+            margin-bottom: 0;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Konane</h1>
+        <div id="game-board-container">
+            <div class="sidebar">
+                <div class="game-info">
+                    <div id="game-message"></div>
+                    <ul id="moves-list"></ul>
+                </div>
+            </div>
+            <div id="board"></div>
+        </div>
+
+        <button id="reset-button">Reset Game</button>
+    </div>
+
+    <script>
+        // Initialize Tone.js (for sound effects)
+        const moveSynth = new Tone.Synth().toDestination();
+        const captureSynth = new Tone.MembraneSynth().toDestination();
+        const gameOverSynth = new Tone.FMSynth().toDestination();
+
+        function playMoveSound() {
+            moveSynth.triggerAttackRelease("C4", "8n");
+        }
+
+        function playCaptureSound() {
+            captureSynth.triggerAttackRelease("A2", "8n");
+        }
+
+        function playGameOverSound() {
+           // gameOverSynth.triggerAttackRelease("C2", "1n");  // Simple tone
+            // More complex sound (a short chord progression)
+              const now = Tone.now();
+              gameOverSynth.triggerAttackRelease("C2", "8n", now);
+              gameOverSynth.triggerAttackRelease("E2", "8n", now + 0.2);
+              gameOverSynth.triggerAttackRelease("G2", "8n", now + 0.4);
+              gameOverSynth.triggerAttackRelease("C3", "1n", now + 0.6);
+        }
+
+
+
+        let gameBoard = [];
+        let currentPlayer = 'black';
+        let selectedPiece = null;
+        let gameOver = false;
+        let firstMove = true;
+        let movesPlayed = 0;
+        let moveNumber = 1;
+        let gameMoves = [];
+        let gameId;
+
+        function createBoard() {
+            gameBoard = [];
+            for (let row = 0; row < 8; row++) {
+                gameBoard[row] = [];
+                for (let col = 0; col < 8; col++) {
+                    if ((row + col) % 2 === 0) {
+                        gameBoard[row][col] = 'black';
+                    } else {
+                        gameBoard[row][col] = 'white';
+                    }
+                }
+            }
+            gameId = generateGameId();
+            console.log("Game ID: ", gameId);
+            moveNumber = 1;
+            gameMoves = []; //clear moves
+        }
+
+        function generateGameId() {
+            return `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+        }
+
+        function renderBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.classList.add(gameBoard[row][col]);
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.textContent = '';
+                    if (gameBoard[row][col] === 'black') {
+                         cell.textContent = '●';
+                    }
+                    if (gameBoard[row][col] === 'white'){
+                        cell.textContent = '○';
+                    }
+
+                    cell.addEventListener('click', handleCellClick);
+                    boardElement.appendChild(cell);
+                }
+            }
+            setMessage('');
+            updateMovesList();
+        }
+
+
+        function getPossibleMoves(board, row, col, player) {
+            const possibleMoves = [];
+            const opponent = player === 'black' ? 'white' : 'black';
+
+            const directions = [
+                { rowOffset: 0, colOffset: 2 },
+                { rowOffset: 0, colOffset: -2 },
+                { rowOffset: 2, colOffset: 0 },
+                { rowOffset: -2, colOffset: 0 },
+            ];
+
+            for (const direction of directions) {
+                const { rowOffset, colOffset } = direction;
+                const newRow = row + rowOffset;
+                const newCol = col + colOffset;
+                const betweenRow = row + rowOffset / 2;
+                const betweenCol = col + colOffset / 2;
+
+                if (
+                    newRow >= 0 &&
+                    newRow < 8 &&
+                    newCol >= 0 &&
+                    newCol < 8 &&
+                    board[newRow][newCol] === 'empty' &&
+                    board[betweenRow][betweenCol] === opponent
+                ) {
+                    possibleMoves.push({ row: newRow, col: newCol });
+                }
+            }
+            return possibleMoves;
+        }
+
+        function removeInitialPieces(board, player, row, col) {
+            board[row][col] = 'empty';
+        }
+
+        function isOrthogonallyAdjacent(row, col, previousMoveRow, previousMoveCol) {
+            return (
+                (row === previousMoveRow && Math.abs(col - previousMoveCol) === 1) ||
+                (col === previousMoveCol && Math.abs(row - previousMoveCol) === 1)
+            );
+        }
+
+
+        function handleCellClick(event) {
+            if (gameOver) return;
+
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+            const clickedPiece = gameBoard[row][col];
+
+            console.log(`Clicked on row: ${row}, col: ${col}, piece: ${clickedPiece}, currentPlayer: ${currentPlayer}, movesPlayed: ${movesPlayed}, firstMove: ${firstMove}`);
+
+
+            if (firstMove) {
+                if (movesPlayed === 0 && currentPlayer === 'black') {
+                    const validFirstMoveCoords = [
+                        { row: 3, col: 3 },
+                        { row: 3, col: 4 },
+                        { row: 4, col: 3 },
+                        { row: 4, col: 4 },
+                        { row: 0, col: 0 },
+                        { row: 0, col: 7 },
+                        { row: 7, col: 0 },
+                        { row: 7, col: 7 },
+                    ];
+                    if (
+                        validFirstMoveCoords.some(
+                            (coord) => coord.row === row && coord.col === col
+                        ) &&
+                        clickedPiece === 'black'
+                    ) {
+                        removeInitialPieces(gameBoard, currentPlayer, row, col);
+                        movesPlayed++;
+                        console.log(`Black removes piece at row: ${row}, col: ${col}`);
+                         gameMoves.push({
+                            moveNumber: moveNumber,
+                            player: currentPlayer,
+                            action: 'remove',
+                            position: { row, col },
+                        });
+                        switchPlayer();
+                    } else {
+                        setMessage(
+                            "Invalid first move for Black. Must remove from center or corner."
+                        );
+                        return;
+                    }
+                } else if (movesPlayed === 1 && currentPlayer === 'white') {
+                    const blackRemovedRow = gameMoves[0].position.row;
+                    const blackRemovedCol = gameMoves[0].position.col;
+                    if (
+                        isOrthogonallyAdjacent(row, col, blackRemovedRow, blackRemovedCol) &&
+                        clickedPiece === 'white'
+                    ) {
+                        removeInitialPieces(gameBoard, currentPlayer, row, col);
+                        movesPlayed++;
+                        console.log(`White removes piece at row: ${row}, col: ${col}`);
+                         gameMoves.push({
+                            moveNumber: moveNumber,
+                            player: currentPlayer,
+                            action: 'remove',
+                            position: { row, col },
+                        });
+                        firstMove = false;
+                        switchPlayer();
+                    } else {
+                        setMessage(
+                            "Invalid first move for White. Must remove a piece orthogonally adjacent to Black's first removed piece."
+                        );
+                        return;
+                    }
+                }
+            } else if (!selectedPiece) {
+                if (clickedPiece === currentPlayer) {
+                    selectedPiece = { row, col };
+                    console.log(`Selected piece at row: ${row}, col: ${col}`);
+                }
+            } else {
+                 if (clickedPiece === 'empty') {
+                    const isValidMove = checkValidMove(selectedPiece.row, selectedPiece.col, row, col);
+                    if (isValidMove) {
+                        movePiece(selectedPiece.row, selectedPiece.col, row, col);
+                         gameMoves.push({
+                            moveNumber: moveNumber,
+                            player: currentPlayer,
+                            action: 'move',
+                            startPosition: { row: selectedPiece.row, col: selectedPiece.col },
+                            endPosition: { row, col },
+                        });
+                        moveNumber++;
+                        switchPlayer();
+                        selectedPiece = null;
+                        if (!hasValidMoves(currentPlayer)) {
+                            switchPlayer();
+                            gameOver = true;
+                            playGameOverSound();
+                        }
+                    }
+                    else{
+                         selectedPiece = null;
+                         setMessage('Invalid move. Select a valid piece to move.');
+                         console.log('Invalid move, clearing selection');
+                    }
+                }
+                else if (clickedPiece === currentPlayer){
+                     selectedPiece = {row, col};
+                     console.log(`Selected piece at row: ${row}, col: ${col}`);
+                }
+                else {
+                    selectedPiece = null;
+                    setMessage('Invalid move, clearing selection');
+                    console.log('Invalid move, clearing selection');
+                }
+            }
+            renderBoard();
+            if (gameOver) {
+                setMessage(`${currentPlayer.toUpperCase()} wins!`);
+                console.log(gameMoves);
+            }
+        }
+
+
+        function checkValidMove(startRow, startCol, endRow, endCol) {
+            const rowDiff = Math.abs(endRow - startRow);
+            const colDiff = Math.abs(endCol - startCol);
+
+            if ((rowDiff === 0 && colDiff === 2) || (rowDiff === 2 && colDiff === 0)) {
+                const jumpedRow = (startRow + endRow) / 2;
+                const jumpedCol = (startCol + endCol) / 2;
+                if (gameBoard[jumpedRow][jumpedCol] !== 'empty') {
+                    console.log(
+                        `Valid move: from (${startRow},${startCol}) to (${endRow},${endCol})`
+                    );
+                    return true;
+                }
+            }
+            console.log(`Invalid move: from (${startRow},${startCol}) to (${endRow},${endCol})`);
+            return false;
+        }
+
+        function movePiece(startRow, startCol, endRow, endCol) {
+            const rowDiff = Math.abs(endRow - startRow);
+            const colDiff = Math.abs(endCol - startCol);
+
+             if (!((rowDiff === 0 && colDiff === 2) || (rowDiff === 2 && colDiff === 0))) {
+                return false;
+             }
+
+            const jumpedRow = (startRow + endRow) / 2;
+            const jumpedCol = (startCol + endCol) / 2;
+
+            if (gameBoard[jumpedRow][jumpedCol] === 'empty') {
+                return false;
+            }
+
+            gameBoard[endRow][endCol] = gameBoard[startRow][startCol];
+            gameBoard[startRow][startCol] = 'empty';
+            gameBoard[jumpedRow][jumpedCol] = 'empty';
+            playMoveSound();
+            console.log(
+                `Piece moved from (${startRow},${startCol}) to (${endRow},${endCol}), jumped over (${jumpedRow},${jumpedCol})`
+            );
+            return true;
+        }
+
+        function hasValidMoves(player) {
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if (gameBoard[row][col] === player) {
+                        if (
+                            (row > 1 &&
+                                gameBoard[row - 1][col] !== 'empty' &&
+                                gameBoard[row - 2][col] === 'empty') ||
+                            (row < 6 &&
+                                gameBoard[row + 1][col] !== 'empty' &&
+                                gameBoard[row + 2][col] === 'empty') ||
+                            (col > 1 &&
+                                gameBoard[row][col - 1] !== 'empty' &&
+                                gameBoard[row][col - 2] === 'empty') ||
+                            (col < 6 &&
+                                gameBoard[row][col + 1] !== 'empty' &&
+                                gameBoard[row][col + 2] === 'empty')
+                        ) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function switchPlayer() {
+            currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+            console.log(`Switching player to ${currentPlayer}`);
+        }
+
+        function setMessage(message) {
+            const messageElement = document.getElementById('game-message');
+            let displayMessage = message; // Start with the passed message
+
+            if (!gameOver) {
+                displayMessage += ` It's ${currentPlayer.toUpperCase()}'s turn.`; // Append player turn info
+            }
+            messageElement.textContent = displayMessage;
+        }
+
+        function updateMovesList() {
+            const movesListElement = document.getElementById('moves-list');
+            movesListElement.innerHTML = '';
+            gameMoves.forEach((move) => {
+                const moveItem = document.createElement('li');
+                let moveText = '';
+                if(move.action === 'remove'){
+                    moveText = `${move.player.slice(0,2).toUpperCase()} removes @ (${move.position.row}, ${move.position.col})`;
+                }
+                else{
+                     moveText = `${move.player.slice(0,2).toUpperCase()} moves from (${move.startPosition.row}, ${move.startPosition.col}) to (${move.endPosition.row}, ${move.endPosition.col})`;
+                }
+
+                moveItem.textContent = `${move.moveNumber}. ${moveText}`;
+                movesListElement.appendChild(moveItem);
+            });
+        }
+
+
+
+        const resetButton = document.getElementById('reset-button');
+        resetButton.addEventListener('click', () => {
+            createBoard();
+            renderBoard();
+            gameOver = false;
+            currentPlayer = 'black';
+            selectedPiece = null;
+            firstMove = true;
+            movesPlayed = 0;
+            setMessage('');
+        });
+
+        createBoard();
+        renderBoard();
+    </script>
+</body>
+</html>

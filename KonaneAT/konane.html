@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konane Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.min.js"></script>
+
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            font-family: 'Press Start 2P', cursive;
+            margin: 0;
+            background: linear-gradient(135deg, #4a148c, #1a237e);
+            flex-direction: row; /* changed to row */
+        }
+
+        h1 {
+            color: #f5f5f5;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            border: 4px solid #ddd;
+            background-color: #424242;
+            padding: 0.5rem;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            margin-bottom: 1rem;
+            margin-right: 2rem; /* Added margin to separate board and sidebar */
+        }
+
+        .piece {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease;
+        }
+
+        .piece:hover {
+            transform: scale(1.1);
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .black {
+            background-color: #000;
+            color: #fff;
+        }
+
+        .white {
+            background-color: #fff;
+            color: #000;
+        }
+
+        .empty {
+            background-color: transparent;
+            border: 2px dashed #777;
+        }
+
+        .possible-move {
+            background-color: rgba(255, 255, 0, 0.5);
+            border: 2px solid yellow;
+        }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        #reset-button {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            background: linear-gradient(to bottom, #4CAF50, #388E3C);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            font-family: 'Press Start 2P', cursive;
+            text-shadow: 1px 1px 0px #388E3C;
+        }
+
+        #reset-button:hover {
+            background: linear-gradient(to bottom, #66BB6A, #43A047);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            transform: translateY(-1px);
+        }
+
+        #reset-button:active {
+            background: linear-gradient(to bottom, #388E3C, #2E7D32);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transform: translateY(0);
+        }
+
+        #current-player {
+            font-size: 1rem;
+            color: #fff;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 5px;
+            background-color: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            min-width: 100px;
+        }
+
+        #game-message {
+            font-size: 0.9rem;
+            color: #ffeb3b;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 5px;
+            background-color: rgba(0, 0, 0, 0.7);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            min-width: 200px;
+            animation: fadeIn 1s ease, pulse 2s infinite alternate;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.06);
+            }
+        }
+
+        #move-list { /* Styles for the sidebar */
+            width: 200px;
+            height: 400px;
+            border: 2px solid #ddd;
+            padding: 0.5rem;
+            margin-left: 1rem;
+            background-color: #f8f8f8;
+            overflow-y: auto;
+            font-size: 0.7rem;
+            font-family: 'Press Start 2P', cursive;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            background: rgba(248, 248, 248, 0.8); /* slight transparency */
+        }
+
+        #move-list h2 {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        #move-list ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #move-list li {
+            padding: 0.25rem 0;
+            border-bottom: 1px dashed #ddd;
+            color: #34495e;
+        }
+        #move-list li:last-child {
+             border-bottom: none;
+        }
+
+        .move {
+            font-weight: bold;
+            color: #e74c3c; /* Highlight the move */
+        }
+
+        .player {
+            font-style: italic;
+            color: #9b59b6; /* Highlight the player */
+        }
+
+    </style>
+    <script>
+        // Initialize Tone.js (sound effects)
+        const moveSound = new Tone.Synth().toDestination();
+        const captureSound = new Tone.MembraneSynth().toDestination();
+        const gameOverSound = new Tone.FMSynth().toDestination();
+
+        function playMoveSound() {
+            moveSound.triggerAttackRelease("C4", "8n");
+        }
+
+        function playCaptureSound() {
+            captureSound.triggerAttackRelease("A2", "8n");
+        }
+
+        function playGameOverSound() {
+            // gameOverSound.triggerAttackRelease("C2", "1n");  // Simple tone
+            // More complex sound (a short chord progression)
+            const now = Tone.now();
+            gameOverSound.triggerAttackRelease("C2", "8n", now);
+            gameOverSound.triggerAttackRelease("E2", "8n", now + 0.2);
+            gameOverSound.triggerAttackRelease("G2", "8n", now + 0.4);
+            gameOverSound.triggerAttackRelease("C3", "1n", now + 0.6);
+        }
+    </script>
+</head>
+<body>
+    <h1>Konane</h1>
+    <div id="current-player">Current Player: Black</div>
+    <div id="game-message"></div>
+    <div id="game-board"></div>
+    <div id="move-list">  <h2>Move Log</h2>
+        <ul></ul>
+    </div>
+    <div id="controls">
+        <button id="reset-button">Reset Game</button>
+    </div>
+
+    <script>
+        const boardElement = document.getElementById('game-board');
+        const currentPlayerDisplay = document.getElementById('current-player');
+        const resetButton = document.getElementById('reset-button');
+        const gameMessage = document.getElementById('game-message');
+        const moveList = document.getElementById('move-list').querySelector('ul'); // Get the move list <ul>
+
+        let board = [];
+        let currentPlayer = 'black';
+        let selectedPiece = null;
+        let gameOver = false;
+        let firstMove = true;
+        let movesPlayed = 0;
+        let validFirstMoves = [];
+        let moveNumber = 1; // Keep track of move number
+        let gameMoves = []; // Array to store moves in JSON format
+
+        function createBoard() {
+            board = [];
+            for (let row = 0; row < 8; row++) {
+                board[row] = [];
+                for (let col = 0; col < 8; col++) {
+                    if ((row + col) % 2 === 0) {
+                        board[row][col] = 'black';
+                    } else {
+                        board[row][col] = 'white';
+                    }
+                }
+            }
+            gameOver = false;
+            currentPlayer = 'black';
+            selectedPiece = null;
+            firstMove = true;
+            movesPlayed = 0;
+            validFirstMoves = [
+                { row: 3, col: 3 },
+                { row: 3, col: 4 },
+                { row: 4, col: 3 },
+                { row: 4, col: 4 },
+                { row: 0, col: 0 },
+                { row: 0, col: 7 },
+                { row: 7, col: 0 },
+                { row: 7, col: 7 }
+            ];
+            moveNumber = 1;
+            moveList.innerHTML = '';
+            gameMoves = []; // Reset move list
+        }
+
+        function renderBoard() {
+            boardElement.innerHTML = '';
+            currentPlayerDisplay.textContent = `Current Player: ${currentPlayer}`;
+            currentPlayerDisplay.style.backgroundColor = currentPlayer;
+            gameMessage.textContent = '';
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const pieceValue = board[row][col];
+                    const cell = document.createElement('div');
+                    cell.classList.add('piece');
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+
+                    if (pieceValue === 'black') {
+                        cell.classList.add('black');
+                        cell.textContent = '●';
+                    } else if (pieceValue === 'white') {
+                        cell.classList.add('white');
+                        cell.textContent = '○';
+                    } else {
+                        cell.classList.add('empty');
+                        if (firstMove) {
+                            if (
+                                (movesPlayed === 0 && currentPlayer === 'black' &&
+                                    validFirstMoves.some(pos => pos.row === row && pos.col === col)) ||
+                                (movesPlayed === 1 && currentPlayer === 'white')
+                            ) {
+                                cell.classList.add('possible-move');
+                            }
+                        }
+                    }
+
+                    if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
+                        cell.style.border = '4px solid limegreen';
+                    }
+
+                    cell.addEventListener('click', handleCellClick);
+                    boardElement.appendChild(cell);
+                }
+            }
+            if (gameOver) {
+                gameMessage.textContent = `${currentPlayer.toUpperCase()} wins!`;
+                playGameOverSound();
+            }
+        }
+
+
+        function handleCellClick(event) {
+            if (gameOver) return;
+
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+            const clickedPiece = board[row][col];
+
+            console.log(`Clicked on row: ${row}, col: ${col}, piece: ${clickedPiece}, currentPlayer: ${currentPlayer}, movesPlayed: ${movesPlayed}, firstMove: ${firstMove}`);
+
+            if (firstMove) {
+                if (
+                    (movesPlayed === 0 && currentPlayer === 'black' && clickedPiece === 'black' && validFirstMoves.some(pos => pos.row === row && pos.col === col)) ||
+                    (movesPlayed === 1 && currentPlayer === 'white' && clickedPiece === 'white' && isOrthogonallyAdjacent(row, col))
+                ) {
+                    board[row][col] = 'empty';
+                    movesPlayed++;
+                    console.log(`Piece removed at row: ${row}, col: ${col}`);
+                    const moveData = {
+                        moveNumber: movesPlayed,
+                        player: currentPlayer,
+                        action: 'remove',
+                        position: { row, col },
+                    };
+                    gameMoves.push(moveData);
+                    console.log(JSON.stringify(gameMoves, null, 2)); // Log JSON to console
+                    moveList.innerHTML = '';
+                    moveList.innerHTML += `<li><span class="player">${currentPlayer}</span> removes piece at <span class="move">${row},${col}</span></li>`;
+                    if (movesPlayed > 1) {
+                        firstMove = false;
+                        console.log(`First move phase over`);
+                    }
+                    switchPlayer();
+                    renderBoard();
+                }
+            } else if (!selectedPiece) {
+                if (clickedPiece === currentPlayer) {
+                    selectedPiece = { row, col };
+                    console.log(`Selected piece at row: ${row}, col: ${col}`);
+                }
+            } else {
+                if (clickedPiece === 'empty') {
+                    const isValidMove = checkValidMove(selectedPiece.row, selectedPiece.col, row, col);
+                    if (isValidMove) {
+                        movePiece(selectedPiece.row, selectedPiece.col, row, col);
+                        switchPlayer();
+                        if (hasValidMoves(currentPlayer)) {
+                            renderBoard();
+                        } else {
+                            gameOver = true;
+                            renderBoard();
+                        }
+                        return;
+                    }
+                } else if (clickedPiece === currentPlayer) {
+                    selectedPiece = { row, col };
+                    console.log(`Selected piece at row: ${row}, col: ${col}`);
+                } else {
+                    selectedPiece = null;
+                    console.log(`Invalid move, clearing selection`);
+                }
+            }
+            renderBoard();
+        }
+
+        function checkValidMove(startRow, startCol, endRow, endCol) {
+            const rowDiff = Math.abs(endRow - startRow);
+            const colDiff = Math.abs(endCol - startCol);
+
+            if ((rowDiff === 0 && colDiff === 2) || (rowDiff === 2 && colDiff === 0)) {
+                const jumpedRow = (startRow + endRow) / 2;
+                const jumpedCol = (startCol + endCol) / 2;
+                if (board[jumpedRow][jumpedCol] !== 'empty') {
+                    console.log(`Valid move: from ${startRow},${startCol} to ${endRow},${endCol}`);
+                    return true;
+                }
+            }
+            console.log(`Invalid move: from ${startRow},${startCol} to ${endRow},${endCol}`);
+            return false;
+        }
+
+        function movePiece(startRow, startCol, endRow, endCol) {
+            const rowDiff = Math.abs(endRow - startRow);
+            const colDiff = Math.abs(endCol - startCol);
+
+            if (!((rowDiff === 0 && colDiff === 2) || (rowDiff === 2 && colDiff === 0))) {
+                return false;
+            }
+
+            const jumpedRow = (startRow + endRow) / 2;
+            const jumpedCol = (startCol + endCol) / 2;
+
+            if (board[jumpedRow][jumpedCol] === 'empty') {
+                return false;
+            }
+
+            board[endRow][endCol] = board[startRow][startCol];
+            board[startRow][startCol] = 'empty';
+            board[jumpedRow][jumpedCol] = 'empty';
+            playMoveSound();
+            selectedPiece = null;
+            console.log(`Piece moved from ${startRow},${startCol} to ${endRow},${endCol}, jumped over ${jumpedRow},${jumpedCol}`);
+
+            // Add move to sidebar
+            moveList.innerHTML += `<li><span class="player">${currentPlayer}</span> moves <span class="move">${startRow},${startCol} to ${endRow},${endCol}</span></li>`;
+
+            // Add move to JSON log
+            const moveData = {
+                moveNumber: moveNumber++,
+                player: currentPlayer,
+                action: 'move',
+                startPosition: { row: startRow, col: startCol },
+                endPosition: { row: endRow, col: endCol },
+                jumpedPosition: { row: jumpedRow, col: jumpedCol },
+            };
+            gameMoves.push(moveData);
+            console.log(JSON.stringify(gameMoves, null, 2)); // Log the move in JSON format
+            return true;
+        }
+
+        function hasValidMoves(player) {
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if (board[row][col] === player) {
+                        if (
+                            (row > 1 && board[row - 1][col] !== 'empty' && board[row - 2][col] === 'empty') ||
+                            (row < 6 && board[row + 1][col] !== 'empty' && board[row + 2][col] === 'empty') ||
+                            (col > 1 && board[row][col - 1] !== 'empty' && board[row][col - 2] === 'empty') ||
+                            (col < 6 && board[row][col + 1] !== 'empty' && board[row][col + 2] === 'empty')
+                        ) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function switchPlayer() {
+            currentPlayer = (currentPlayer === 'black') ? 'white' : 'black';
+            console.log(`Switching player to ${currentPlayer}`);
+        }
+
+        function resetGame() {
+            createBoard();
+            renderBoard();
+            console.log(`Game reset`);
+        }
+
+        function isOrthogonallyAdjacent(row, col) {
+            if (movesPlayed === 0) return false;
+            let emptyRow, emptyCol;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (board[r][c] === 'empty') {
+                        emptyRow = r;
+                        emptyCol = c;
+                        break;
+                    }
+                }
+            }
+            const adjacent = (
+                (row === emptyRow && Math.abs(col - emptyCol) === 1) ||
+                (col === emptyCol && Math.abs(row - emptyRow) === 1)
+            );
+            console.log(`Checking if row: ${row}, col: ${col} is adjacent to empty at row: ${emptyRow}, col: ${emptyCol}. Result: ${adjacent}`);
+            return adjacent;
+        }
+
+        // Initial setup
+        createBoard();
+        renderBoard();
+
+        // Event listener for the reset button
+        resetButton.addEventListener('click', resetGame);
+    </script>
+</body>
+</html>
